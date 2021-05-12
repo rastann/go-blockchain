@@ -34,18 +34,17 @@ func InitBlockChain() *BlockChain {
 			genesis := Genesis()
 			fmt.Println("Genesis proved")
 			err = txn.Set(genesis.Hash, genesis.Serialize())
-
+			Handler(err)
 			err = txn.Set([]byte("lh"), genesis.Hash)
 
 			lastHash = genesis.Hash
+
 			return err
 		} else {
 			item, err := txn.Get([]byte("lh"))
 			Handler(err)
-			err = item.Value(func(val []byte) error {
-				copy(lastHash, val)
-				return nil
-			})
+			dst := []byte{}
+			lastHash, err = item.ValueCopy(dst)
 			return err
 		}
 	})
@@ -63,10 +62,8 @@ func (chain *BlockChain) AddBlock(data string) {
 	err := chain.Database.View(func(txn *badger.Txn) error {
 		item, err := txn.Get([]byte("lh"))
 		Handler(err)
-		err = item.Value(func(val []byte) error {
-			lastHash = val
-			return nil
-		})
+		dst := []byte{}
+		lastHash, err = item.ValueCopy(dst)
 		return err
 	})
 	Handler(err)
@@ -98,10 +95,8 @@ func (iter *BlockChainIterator) Next() *Block {
 	err := iter.Database.View(func(txn *badger.Txn) error {
 		item, err := txn.Get(iter.CurrentHash)
 		Handler(err)
-		err = item.Value(func(val []byte) error {
-			encodedBlock = val
-			return nil
-		})
+		dst := []byte{}
+		encodedBlock, err = item.ValueCopy(dst)
 
 		block = Deserialize(encodedBlock)
 
